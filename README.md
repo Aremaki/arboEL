@@ -42,15 +42,18 @@ If you use ArboEL in your work, please cite the following paper:
 
 ## Setting up
 
-- Install conda (we recommend 
-[miniconda](https://docs.conda.io/en/latest/miniconda.html))
+- Install uv package manager
+curl -LsSf https://astral.sh/uv/install.sh | sh
 - Create an environment and install dependencies 
     ```bash
-    conda create -n blink37 -y python=3.7 && conda activate blink37 && pip install -r requirements.txt && conda install cython pytorch==1.4.0 torchvision==0.5.0 cudatoolkit=10.1 -c pytorch
+    uv venv --python 3.8 .venv
+    source .venv/bin/activate
+    uv sync
     ```
 - Build cluster-linking special_partition function (from Cython)
     ```bash
-    cd blink/biencoder/special_partition; python setup.py build_ext --inplace
+    python blink/biencoder/special_partition/setup.py build_ext --inplace
+    python blink/crossencoder/special_partition/setup.py build_ext --inplace
     ```
 - Our setup assumes GPU availability
   - The code for our paper was run using 2 NVIDIA Quadro RTX 8000

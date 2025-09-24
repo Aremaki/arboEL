@@ -1,0 +1,53 @@
+[project]
+name = "arboEL"
+version = "0.1.0"
+description = "ArboEL: Entity Linking & Discovery via arborescence-based supervised clustering"
+authors = [
+    { name = "dhdhagar" }
+]
+requires-python = ">=3.8"
+readme = "README.md"
+license = { file = "LICENSE" }
+keywords = ["entity-linking", "NLP", "clustering", "arborescence", "bioNLP"]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.8",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence"
+]
+
+dependencies = [
+    "pysolr==3.8.1",
+    "emoji==0.5.3",
+    "regex==2019.8.19",
+    "tqdm>=4.32.1",
+    "nltk==3.4.5",
+    "numpy==1.17.3",
+    "segtok==1.5.7",
+    "flair==0.4.3",
+    "pytorch-transformers==1.2.0",
+    "colorama==0.4.3",
+    "termcolor==1.1.0",
+    "faiss-cpu>=1.6.1",
+    "higra==0.6.4",
+    "torch==1.4.0",
+    "torchvision==0.5.0",
+    "cython>=3.1.4",
+    "pip>=25.0.1",
+    "ipykernel>=5.5.6",
+]
+
+[project.optional-dependencies]
+dev = [
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "pytest>=7.0.0"
+]
+
+[tool.setuptools]
+package-dir = {"" = "."}
+packages = ["blink"]
+
+
+[build-system]
+requires = ["setuptools>=61", "wheel", "cython"]
+build-backend = "setuptools.build_meta"
