@@ -65,8 +65,8 @@ for model in "${MODELS[@]}"; do
     	PICKLE_SRC_PATH="$(pickle_path_for "$model" "$ds")"
     	BIENCODER_PATH="$(biencoder_path_for "$model" "$ds")"
     	BERT_MODEL="$(model_path_for "$model")"
-    
-    	job_name="biencoder_${ds}"
+
+    	job_name="crossencoder_${ds}"
     	log_out="${ROOT_DIR}/logs/${job_name}_%j.out"
     	log_err="${ROOT_DIR}/logs/${job_name}_%j.err"
     
