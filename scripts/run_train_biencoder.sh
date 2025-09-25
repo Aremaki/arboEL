@@ -28,7 +28,7 @@ declare -a DATASETS=(
 model_path_for() {
 	local model="$1"
 	case "$model" in
-		biobert) echo "${ROOT_DIR}/models/biobert-base-cased-v1.1" ;;
+		biobert) echo "${ROOT_DIR}/models/biobert-base-cased-v1.2" ;;
 		coder-all) echo "${ROOT_DIR}/models/coder-all" ;;
 		*) echo "Unknown model: $model" >&2; return 1 ;;
 	esac
