@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+#SBATCH -C a100                      # target A100 nodes
+#SBATCH --ntasks=1                   # total MPI tasks (= total GPUs)
+#SBATCH --ntasks-per-node=1          # MPI tasks per node (= GPUs per node)
+#SBATCH --gres=gpu:1                 # GPUs per node
+#SBATCH --cpus-per-task=24           # CPU cores per task
+#SBATCH --hint=nomultithread         # disable hyperthreading
+#SBATCH --time=20:00:00              # walltime (HH:MM:SS)
+# NOTE: Job name and log files can be overridden via sbatch -J/-o/-e from the wrapper.
+#SBATCH --job-name=biencoder
+#SBATCH --output=logs/biencoder_%j.out
+#SBATCH --error=logs/biencoder_%j.err
+
+set -euo pipefail
+
+# Clean any inherited modules and load cluster toolchains
+module purge
+module load arch/a100
+module load pytorch-gpu/py3/1.11.0
+
+# Resolve parameters (override via sbatch --export or environment)
+DATASET_NAME="${DATASET:-medmentions}"
+DATA_PATH="${DATA_PATH:-data/medmentions/processed}"
+OUTPUT_PATH="${OUTPUT_PATH:-models/trained/medmentions_mst/pos_neg_loss/no_type}"
+PICKLE_SRC_PATH="${PICKLE_SRC_PATH:-models/trained/medmentions}"
+BIENCODER_PATH="${BIENCODER_PATH:-models/trained/medmentions}"
+
+BERT_MODEL="${BERT_MODEL:-models/biobert-base-cased-v1.1}"
+EPOCHS="${EPOCHS:-5}"
+LEARNING_RATE="${LEARNING_RATE:-2e-5}"
+TRAIN_BATCH_SIZE="${TRAIN_BATCH_SIZE:-2}"
+EVAL_BATCH_SIZE="${EVAL_BATCH_SIZE:-2}"
+SCORING_BATCH_SIZE="${SCORING_BATCH_SIZE:-64}"
+
+echo "Starting biencoder training"
+echo "Dataset:        ${DATASET_NAME}"
+echo "Data path:      ${DATA_PATH}"
+echo "Output path:    ${OUTPUT_PATH}"
+echo "Pickle src:     ${PICKLE_SRC_PATH}"
+echo "BERT model:     ${BERT_MODEL}"
+echo "Epochs:         ${EPOCHS}"
+echo "Batch size:     ${TRAIN_BATCH_SIZE} (grad accum ${GRADIENT_ACCUMULATION_STEPS})"
+echo "Eval interval:  ${EVAL_INTERVAL}"
+echo "Embed batch:    ${EMBED_BATCH_SIZE}"
+
+# Ensure directories exist
+mkdir -p "${OUTPUT_PATH}"
+mkdir -p logs
+
+# Generate dual-encoder candidates
+python -u blink/biencoder/eval_cluster_linking.py \
+	--bert_model="${BERT_MODEL}" \
+	--data_path="${DATA_PATH}" \
+	--output_path="${OUTPUT_PATH}" \
+	--pickle_src_path="${PICKLE_SRC_PATH}" \
+	--path_to_biencoder_model="${BIENCODER_PATH}" \
+	--scoring_batch_size="${SCORING_BATCH_SIZE}" \
+	--data_parallel \
+	--save_topk_result
+
+# Run cross-encoder training
+python -u blink/crossencoder/original/train_cross.py \
+	--bert_model="${BERT_MODEL}" \
+	--data_path="${DATA_PATH}" \
+	--output_path="${OUTPUT_PATH}" \
+	--biencoder_indices_path="${OUTPUT_PATH}" \
+	--pickle_src_path="${PICKLE_SRC_PATH}" \
+	--num_train_epochs="${EPOCHS}" \
+	--learning_rate="${LEARNING_RATE}" \
+	--train_batch_size="${TRAIN_BATCH_SIZE}" \
+	--eval_batch_size="${EVAL_BATCH_SIZE}" \
+	--eval_interval=-1 \
+	--add_linear \
+	--skip_initial_eval \
+	--data_parallel
+echo "SCRIPT FINISHED"
