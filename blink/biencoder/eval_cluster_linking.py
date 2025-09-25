@@ -17,13 +17,11 @@ import numpy as np
 import torch
 from scipy.sparse import coo_matrix
 from scipy.sparse.csgraph import connected_components
+from special_partition.special_partition import cluster_linking_partition
 
 import blink.biencoder.data_process_mult as data_process
 import blink.candidate_ranking.utils as utils
 from blink.biencoder.biencoder import BiEncoderRanker
-from blink.biencoder.special_partition.special_partition import (  # type: ignore
-    cluster_linking_partition,
-)
 from blink.common.params import BlinkParser
 
 

@@ -15,6 +15,7 @@ import torch
 from pytorch_transformers.optimization import WarmupLinearSchedule
 from scipy.sparse import csr_matrix
 from scipy.sparse.csgraph import minimum_spanning_tree
+from special_partition.special_partition import cluster_linking_partition
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 from tqdm import tqdm, trange
 
@@ -22,9 +23,6 @@ import blink.biencoder.data_process_mult as data_process
 import blink.biencoder.eval_cluster_linking as eval_cluster_linking
 import blink.candidate_ranking.utils as utils
 from blink.biencoder.biencoder import BiEncoderRanker
-from blink.biencoder.special_partition.special_partition import (  # type: ignore
-    cluster_linking_partition,
-)
 from blink.common.optimizer import get_bert_optimizer
 from blink.common.params import BlinkParser
 

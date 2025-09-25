@@ -24,9 +24,8 @@ import blink.biencoder.data_process_mult as data_process
 import blink.biencoder.eval_cluster_linking as eval_cluster_linking
 import blink.candidate_ranking.utils as utils
 from blink.biencoder.biencoder import BiEncoderRanker
-from blink.biencoder.special_partition.special_partition import (  # type: ignore
-    cluster_linking_partition,
-)
+from special_partition.special_partition import cluster_linking_partition
+
 from blink.common.optimizer import get_bert_optimizer
 from blink.common.params import BlinkParser
 from blink.crossencoder.crossencoder import CrossEncoderRanker
