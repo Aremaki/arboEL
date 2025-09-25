@@ -41,12 +41,10 @@ data_path_for() {
 }
 
 pickle_path_for() {
-pickle_path_for() {
 	local model="$1"
 	local ds="$2"
 	echo "${ROOT_DIR}/models/trained/${ds}_${model}"
 }
-output_path_for() {
 output_path_for() {
 	local model="$1"
 	local ds="$2"
