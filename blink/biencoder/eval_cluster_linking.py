@@ -6,21 +6,25 @@
 # LICENSE file in the root directory of this source tree.
 #
 
-import os
 import json
 import math
-import time
-import torch
-import numpy as np
+import os
 import pickle
+import time
+from collections import defaultdict
+
+import numpy as np
+import torch
 from scipy.sparse import coo_matrix
 from scipy.sparse.csgraph import connected_components
-from special_partition.special_partition import cluster_linking_partition
-from collections import defaultdict
+
 import blink.biencoder.data_process_mult as data_process
 import blink.candidate_ranking.utils as utils
-from blink.common.params import BlinkParser
 from blink.biencoder.biencoder import BiEncoderRanker
+from blink.biencoder.special_partition.special_partition import (  # type: ignore
+    cluster_linking_partition,
+)
+from blink.common.params import BlinkParser
 
 
 def get_query_nn(
@@ -614,28 +618,18 @@ def main(params):
                 nn_ent_dists_by_type, nn_ent_idxs_by_type = dict_indexes[
                     entity_type
                 ].search(men_embeds_by_type, params["recall_k"])
-                nn_ent_idxs_by_type = np.array(
-                    list(
-                        map(
-                            lambda x: dict_idxs_by_type[entity_type][x],
-                            nn_ent_idxs_by_type,
-                        )
-                    )
-                )
+                nn_ent_idxs_by_type = np.array([
+                    dict_idxs_by_type[entity_type][x] for x in nn_ent_idxs_by_type
+                ])
                 n_mens_to_fetch = len(men_embeds_by_type) if within_doc else max_knn + 1
                 nn_men_dists_by_type, nn_men_idxs_by_type = men_indexes[
                     entity_type
                 ].search(
                     men_embeds_by_type, min(n_mens_to_fetch, len(men_embeds_by_type))
                 )
-                nn_men_idxs_by_type = np.array(
-                    list(
-                        map(
-                            lambda x: men_idxs_by_type[entity_type][x],
-                            nn_men_idxs_by_type,
-                        )
-                    )
-                )
+                nn_men_idxs_by_type = np.array([
+                    men_idxs_by_type[entity_type][x] for x in nn_men_idxs_by_type
+                ])
                 i = -1
                 for idx in men_idxs_by_type[entity_type]:
                     if params["transductive"]:
@@ -828,11 +822,9 @@ def main(params):
         print(f"\nPredictions overview saved at: {output_file_name}.json")
 
     logger.info(
-        "\nThe avg. per graph evaluation time is {} minutes\n".format(
-            avg_per_graph_time
-        )
+        f"\nThe avg. per graph evaluation time is {avg_per_graph_time} minutes\n"
     )
-    logger.info("\nThe total evaluation took {} minutes\n".format(execution_time))
+    logger.info(f"\nThe total evaluation took {execution_time} minutes\n")
 
 
 if __name__ == "__main__":
