@@ -74,5 +74,5 @@ for model in "${MODELS[@]}"; do
     		${SBATCH_EXTRA_OPTS} \
     		"${SLURM_SCRIPT}"
     done
-
+done
 echo "All jobs submitted."
