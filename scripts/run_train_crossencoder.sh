@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# This script submits one sbatch job per dataset to train the biencoder.
+# This script submits one sbatch job per dataset to train the crosscoder.
 # Datasets: Medmentions, EMEA, Medline, Medmentions_augmented, EMEA_augmented, Medline_augmented
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
