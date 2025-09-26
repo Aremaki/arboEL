@@ -19,10 +19,23 @@ declare -a DATASETS=(
 	"MedMentions"
 	"EMEA"
 	"MEDLINE"
-	# "Medmentions_augmented"
-	# "EMEA_augmented"
-	# "Medline_augmented"
+	"Medmentions_augmented"
+	"EMEA_augmented"
+	"Medline_augmented"
 )
+
+epoch_for() {
+	local ds="$1"
+	case "$ds" in
+		MedMentions) echo 5 ;;
+		EMEA) echo 10 ;;
+		MEDLINE) echo 10 ;;
+		Medmentions_augmented) echo 1 ;;
+		EMEA_augmented) echo 2 ;;
+		Medline_augmented) echo 2 ;;
+		*) echo "Unknown dataset: $ds" >&2; return 1 ;;
+	esac
+}
 
 # Map model to paths. Adjust here if your data layout differs.
 model_path_for() {
@@ -58,6 +71,7 @@ for model in "${MODELS[@]}"; do
     	OUTPUT_PATH="$(output_path_for "$model" "$ds")"
     	PICKLE_SRC_PATH="$(pickle_path_for "$model" "$ds")"
     	BERT_MODEL="$(model_path_for "$model")"
+		EPOCHS="$(epoch_for "$ds")"
     
     	job_name="biencoder_${ds}"
     	log_out="${ROOT_DIR}/logs/${job_name}_%j.out"
@@ -70,7 +84,7 @@ for model in "${MODELS[@]}"; do
     		-o "${log_out}" \
     		-e "${log_err}" \
 			-A ssq@a100 \
-    		--export=ALL,DATASET="${ds}",DATA_PATH="${DATA_PATH}",OUTPUT_PATH="${OUTPUT_PATH}",PICKLE_SRC_PATH="${PICKLE_SRC_PATH}",BERT_MODEL="${BERT_MODEL}" \
+    		--export=ALL,DATASET="${ds}",DATA_PATH="${DATA_PATH}",OUTPUT_PATH="${OUTPUT_PATH}",PICKLE_SRC_PATH="${PICKLE_SRC_PATH}",BERT_MODEL="${BERT_MODEL}",EPOCHS="${EPOCHS}" \
     		${SBATCH_EXTRA_OPTS} \
     		"${SLURM_SCRIPT}"
     done

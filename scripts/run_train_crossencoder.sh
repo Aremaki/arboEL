@@ -19,9 +19,9 @@ declare -a DATASETS=(
 	"MedMentions"
 	"EMEA"
 	"MEDLINE"
-	# "Medmentions_augmented"
-	# "EMEA_augmented"
-	# "Medline_augmented"
+	"Medmentions_augmented"
+	"EMEA_augmented"
+	"Medline_augmented"
 )
 
 # Map model to paths. Adjust here if your data layout differs.
@@ -33,7 +33,19 @@ model_path_for() {
 		*) echo "Unknown model: $model" >&2; return 1 ;;
 	esac
 }
-
+# Map epoch to dataset. Adjust here if your data layout differs.
+epoch_for() {
+	local ds="$1"
+	case "$ds" in
+		MedMentions) echo 5 ;;
+		EMEA) echo 10 ;;
+		MEDLINE) echo 10 ;;
+		Medmentions_augmented) echo 1 ;;
+		EMEA_augmented) echo 2 ;;
+		Medline_augmented) echo 2 ;;
+		*) echo "Unknown dataset: $ds" >&2; return 1 ;;
+	esac
+}
 # Map dataset to paths. Adjust here if your data layout differs.
 data_path_for() {
 	local ds="$1"
@@ -65,6 +77,7 @@ for model in "${MODELS[@]}"; do
     	PICKLE_SRC_PATH="$(pickle_path_for "$model" "$ds")"
     	BIENCODER_PATH="$(biencoder_path_for "$model" "$ds")"
     	BERT_MODEL="$(model_path_for "$model")"
+		EPOCHS="$(epoch_for "$ds")"
 
     	job_name="crossencoder_${ds}"
     	log_out="${ROOT_DIR}/logs/${job_name}_%j.out"
@@ -77,7 +90,7 @@ for model in "${MODELS[@]}"; do
     		-o "${log_out}" \
     		-e "${log_err}" \
 			-A ssq@a100 \
-    		--export=ALL,DATASET="${ds}",DATA_PATH="${DATA_PATH}",OUTPUT_PATH="${OUTPUT_PATH}",PICKLE_SRC_PATH="${PICKLE_SRC_PATH}",BERT_MODEL="${BERT_MODEL}",BIENCODER_PATH="${BIENCODER_PATH}" \
+    		--export=ALL,DATASET="${ds}",DATA_PATH="${DATA_PATH}",OUTPUT_PATH="${OUTPUT_PATH}",PICKLE_SRC_PATH="${PICKLE_SRC_PATH}",BERT_MODEL="${BERT_MODEL}",BIENCODER_PATH="${BIENCODER_PATH}",EPOCHS="${EPOCHS}" \
     		${SBATCH_EXTRA_OPTS} \
     		"${SLURM_SCRIPT}"
     done
