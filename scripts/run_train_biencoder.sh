@@ -83,7 +83,7 @@ for model in "${MODELS[@]}"; do
     		-J "${job_name}" \
     		-o "${log_out}" \
     		-e "${log_err}" \
-			-A ssq@a100 \
+			-A ssq@v100 \
     		--export=ALL,DATASET="${ds}",DATA_PATH="${DATA_PATH}",OUTPUT_PATH="${OUTPUT_PATH}",PICKLE_SRC_PATH="${PICKLE_SRC_PATH}",BERT_MODEL="${BERT_MODEL}",EPOCHS="${EPOCHS}" \
     		${SBATCH_EXTRA_OPTS} \
     		"${SLURM_SCRIPT}"

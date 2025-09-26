@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-#SBATCH -C a100                      # target A100 nodes
+#SBATCH --partition=gpu_p2l          # target V100 nodes
 #SBATCH --ntasks=1                   # total MPI tasks (= total GPUs)
-#SBATCH --ntasks-per-node=1          # MPI tasks per node (= GPUs per node)
+#SBATCH --ntasks-per-node=1         # MPI tasks per node (= GPUs per node)
 #SBATCH --gres=gpu:1                 # GPUs per node
-#SBATCH --cpus-per-task=24           # CPU cores per task
+#SBATCH --cpus-per-task=3           # nombre de CPU par tache pour gpu_p2 (1/8 du noeud 8-GPU V100)
 #SBATCH --hint=nomultithread         # disable hyperthreading
 #SBATCH --time=20:00:00              # walltime (HH:MM:SS)
 # NOTE: Job name and log files can be overridden via sbatch -J/-o/-e from the wrapper.
@@ -15,7 +15,6 @@ set -euo pipefail
 
 # Clean any inherited modules and load cluster toolchains
 module purge
-module load arch/a100
 module load pytorch-gpu/py3/1.11.0
 
 # Resolve parameters (override via sbatch --export or environment)
@@ -26,10 +25,10 @@ PICKLE_SRC_PATH="${PICKLE_SRC_PATH:-models/trained/medmentions}"
 EPOCHS="${EPOCHS:-5}"
 
 BERT_MODEL="${BERT_MODEL:-models/biobert-base-cased-v1.1}"
-TRAIN_BATCH_SIZE="${TRAIN_BATCH_SIZE:-128}"
+TRAIN_BATCH_SIZE="${TRAIN_BATCH_SIZE:-64}"
 GRADIENT_ACCUMULATION_STEPS="${GRAD_ACCUM_STEPS:-4}"
 EVAL_INTERVAL="${EVAL_INTERVAL:-10000}"
-EMBED_BATCH_SIZE="${EMBED_BATCH_SIZE:-3500}"
+EMBED_BATCH_SIZE="${EMBED_BATCH_SIZE:-756}"
 
 echo "Starting biencoder training"
 echo "Dataset:        ${DATASET_NAME}"
@@ -56,9 +55,8 @@ python -u blink/biencoder/train_biencoder_mst.py \
 	--train_batch_size="${TRAIN_BATCH_SIZE}" \
 	--gradient_accumulation_steps="${GRADIENT_ACCUMULATION_STEPS}" \
 	--eval_interval="${EVAL_INTERVAL}" \
+	--embed_batch_size="${EMBED_BATCH_SIZE}" \
 	--pos_neg_loss \
 	--force_exact_search \
-	--embed_batch_size="${EMBED_BATCH_SIZE}" \
-	--data_parallel
 
 echo "SCRIPT FINISHED"
