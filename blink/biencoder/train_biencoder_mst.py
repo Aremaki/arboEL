@@ -11,6 +11,11 @@ import random
 import time
 
 import numpy as np
+
+if not hasattr(np, "int"):
+    np.int = int
+if not hasattr(np, "bool"):
+    np.bool = bool
 import torch
 from pytorch_transformers.optimization import WarmupLinearSchedule
 from scipy.sparse import csr_matrix

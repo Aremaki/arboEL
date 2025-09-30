@@ -61,6 +61,12 @@ output_path_for() {
 	local model="$1"
 	local ds="$2"
 	local base="${ROOT_DIR}/models/trained"
+	echo "${base}/${ds}_${model}/crossencoder/arbo"
+}
+biencoder_candidates_path_for() {
+	local model="$1"
+	local ds="$2"
+	local base="${ROOT_DIR}/models/trained"
 	echo "${base}/${ds}_${model}/candidates/arbo"
 }
 biencoder_path_for() {
@@ -74,6 +80,7 @@ for model in "${MODELS[@]}"; do
     for ds in "${DATASETS[@]}"; do
     	DATA_PATH="$(data_path_for "$ds")"
     	OUTPUT_PATH="$(output_path_for "$model" "$ds")"
+    	BIENCODER_CAND="$(biencoder_candidates_path_for "$model" "$ds")"
     	PICKLE_SRC_PATH="$(pickle_path_for "$model" "$ds")"
     	BIENCODER_PATH="$(biencoder_path_for "$model" "$ds")"
     	BERT_MODEL="$(model_path_for "$model")"
@@ -89,8 +96,8 @@ for model in "${MODELS[@]}"; do
     		-J "${job_name}" \
     		-o "${log_out}" \
     		-e "${log_err}" \
-			-A ssq@a100 \
-    		--export=ALL,DATASET="${ds}",DATA_PATH="${DATA_PATH}",OUTPUT_PATH="${OUTPUT_PATH}",PICKLE_SRC_PATH="${PICKLE_SRC_PATH}",BERT_MODEL="${BERT_MODEL}",BIENCODER_PATH="${BIENCODER_PATH}",EPOCHS="${EPOCHS}" \
+			-A ssq@h100 \
+    		--export=ALL,DATASET="${ds}",DATA_PATH="${DATA_PATH}",OUTPUT_PATH="${OUTPUT_PATH}",PICKLE_SRC_PATH="${PICKLE_SRC_PATH}",BERT_MODEL="${BERT_MODEL}",BIENCODER_PATH="${BIENCODER_PATH}",EPOCHS="${EPOCHS}",BIENCODER_CAND="${BIENCODER_CAND}" \
     		${SBATCH_EXTRA_OPTS} \
     		"${SLURM_SCRIPT}"
     done

@@ -14,6 +14,11 @@ import time
 from collections import defaultdict
 
 import numpy as np
+
+if not hasattr(np, "int"):
+    np.int = int
+if not hasattr(np, "bool"):
+    np.bool = bool
 import torch
 from scipy.sparse import coo_matrix
 from scipy.sparse.csgraph import connected_components

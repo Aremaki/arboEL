@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# This script submits one sbatch job per dataset to train the biencoder.
+# This script submits one sbatch job per dataset to evaluate the crossencoder.
 # Datasets: Medmentions, EMEA, Medline, Medmentions_augmented, EMEA_augmented, Medline_augmented
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SLURM_SCRIPT="${ROOT_DIR}/scripts/train_biencoder.slurm"
+SLURM_SCRIPT="${ROOT_DIR}/scripts/train_crossencoder.slurm"
 
 # Allow overriding the partition/node constraint and other sbatch opts via env
 SBATCH_EXTRA_OPTS=${SBATCH_EXTRA_OPTS:-}
@@ -19,23 +19,10 @@ declare -a DATASETS=(
 	"MedMentions"
 	"EMEA"
 	"MEDLINE"
-	"MedMentions_augmented"
+	"Medmentions_augmented"
 	"EMEA_augmented"
-	"MEDLINE_augmented"
+	"Medline_augmented"
 )
-
-epoch_for() {
-	local ds="$1"
-	case "$ds" in
-		MedMentions) echo 5 ;;
-		EMEA) echo 10 ;;
-		MEDLINE) echo 10 ;;
-		MedMentions_augmented) echo 1 ;;
-		EMEA_augmented) echo 2 ;;
-		MEDLINE_augmented) echo 2 ;;
-		*) echo "Unknown dataset: $ds" >&2; return 1 ;;
-	esac
-}
 
 # Map model to paths. Adjust here if your data layout differs.
 model_path_for() {
@@ -56,13 +43,25 @@ data_path_for() {
 pickle_path_for() {
 	local model="$1"
 	local ds="$2"
-	echo "${ROOT_DIR}/models/trained/${ds}_${model}_2"
+	echo "${ROOT_DIR}/models/trained/${ds}_${model}"
 }
 output_path_for() {
 	local model="$1"
 	local ds="$2"
 	local base="${ROOT_DIR}/models/trained"
-	echo "${base}/${ds}_${model}_2/pos_neg_loss/with_type"
+	echo "${base}/${ds}_${model}/crossencoder/eval/arbo"
+}
+biencoder_candidates_path_for() {
+	local model="$1"
+	local ds="$2"
+	local base="${ROOT_DIR}/models/trained"
+	echo "${base}/${ds}_${model}/candidates/arbo"
+}
+cross_model_path_for() {
+	local model="$1"
+	local ds="$2"
+	local base="${ROOT_DIR}/models/trained"
+	echo "${base}/${ds}_${model}/crossencoder/arbo/pytorch_model.bin"
 }
 mkdir -p "${ROOT_DIR}/logs"
 for model in "${MODELS[@]}"; do
@@ -70,10 +69,11 @@ for model in "${MODELS[@]}"; do
     	DATA_PATH="$(data_path_for "$ds")"
     	OUTPUT_PATH="$(output_path_for "$model" "$ds")"
     	PICKLE_SRC_PATH="$(pickle_path_for "$model" "$ds")"
+    	BIENCODER_CAND="$(biencoder_candidates_path_for "$model" "$ds")"
     	BERT_MODEL="$(model_path_for "$model")"
-		EPOCHS="$(epoch_for "$ds")"
-    
-    	job_name="biencoder_${ds}"
+        CROSSENCODER_PATH="$(cross_model_path_for "$model" "$ds")"
+
+    	job_name="eval_crossencoder_${ds}"
     	log_out="${ROOT_DIR}/logs/${job_name}_%j.out"
     	log_err="${ROOT_DIR}/logs/${job_name}_%j.err"
     
@@ -84,7 +84,7 @@ for model in "${MODELS[@]}"; do
     		-o "${log_out}" \
     		-e "${log_err}" \
 			-A ssq@h100 \
-    		--export=ALL,DATASET="${ds}",DATA_PATH="${DATA_PATH}",OUTPUT_PATH="${OUTPUT_PATH}",PICKLE_SRC_PATH="${PICKLE_SRC_PATH}",BERT_MODEL="${BERT_MODEL}",EPOCHS="${EPOCHS}" \
+    		--export=ALL,DATASET="${ds}",DATA_PATH="${DATA_PATH}",OUTPUT_PATH="${OUTPUT_PATH}",PICKLE_SRC_PATH="${PICKLE_SRC_PATH}",BERT_MODEL="${BERT_MODEL}",BIENCODER_CAND="${BIENCODER_CAND}",CROSSENCODER_PATH="${CROSSENCODER_PATH}" \
     		${SBATCH_EXTRA_OPTS} \
     		"${SLURM_SCRIPT}"
     done

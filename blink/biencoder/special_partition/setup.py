@@ -1,11 +1,10 @@
-from distutils.core import setup, Extension
+from setuptools import setup, Extension
 import Cython
 from Cython.Build import cythonize
 import numpy
 
 setup(
-    ext_modules=cythonize("special_partition.pyx"),
-    include_dirs=[numpy.get_include()]
+    ext_modules=cythonize("special_partition.pyx"), include_dirs=[numpy.get_include()]
 )
 
 """

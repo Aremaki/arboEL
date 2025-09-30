@@ -7,9 +7,9 @@
 #SBATCH --hint=nomultithread         # disable hyperthreading
 #SBATCH --time=20:00:00              # walltime (HH:MM:SS)
 # NOTE: Job name and log files can be overridden via sbatch -J/-o/-e from the wrapper.
-#SBATCH --job-name=train_cross
-#SBATCH --output=logs/train_cross_%j.out
-#SBATCH --error=logs/train_cross_%j.err
+#SBATCH --job-name=eval_cross
+#SBATCH --output=logs/eval_cross_%j.out
+#SBATCH --error=logs/eval_cross_%j.err
 
 set -euo pipefail
 
@@ -23,59 +23,33 @@ DATASET_NAME="${DATASET:-medmentions}"
 DATA_PATH="${DATA_PATH:-data/medmentions/processed}"
 OUTPUT_PATH="${OUTPUT_PATH:-models/trained/medmentions_mst/pos_neg_loss/no_type}"
 PICKLE_SRC_PATH="${PICKLE_SRC_PATH:-models/trained/medmentions}"
-BIENCODER_PATH="${BIENCODER_PATH:-models/trained/medmentions}"
-EPOCHS="${EPOCHS:-5}"
-BIENCODER_CAND="${BIENCODER_CAND:-models/trained/medmentions/candidates/arbo}"
-
 BERT_MODEL="${BERT_MODEL:-models/biobert-base-cased-v1.1}"
-LEARNING_RATE="${LEARNING_RATE:-2e-5}"
-TRAIN_BATCH_SIZE="${TRAIN_BATCH_SIZE:-2}"
 EVAL_BATCH_SIZE="${EVAL_BATCH_SIZE:-2}"
-SCORING_BATCH_SIZE="${SCORING_BATCH_SIZE:-64}"
+BIENCODER_CAND="${BIENCODER_CAND:-models/trained/medmentions/candidates/arbo}"
+CROSSENCODER_PATH="${CROSSENCODER_PATH:-models/trained/medmentions}"
 
-echo "Starting crossencoder training"
+echo "Starting crossencoder evaluation"
 echo "Dataset:        ${DATASET_NAME}"
+echo "Cross-encoder path:      ${CROSSENCODER_PATH}"
+echo "Bi-encoder candidates path:      ${BIENCODER_CAND}"
 echo "Data path:      ${DATA_PATH}"
 echo "Output path:    ${OUTPUT_PATH}"
 echo "Pickle src:     ${PICKLE_SRC_PATH}"
-echo "Biencoder src:  ${BIENCODER_PATH}"
-echo "Bi-encoder candidates path:      ${BIENCODER_CAND}"
 echo "BERT model:     ${BERT_MODEL}"
-echo "Epochs:         ${EPOCHS}"
-echo "Learning rate:      ${LEARNING_RATE}"
-echo "Train batch size:     ${TRAIN_BATCH_SIZE}"
 echo "Eval batch size:     ${EVAL_BATCH_SIZE}"
-echo "Scoring batch size: ${SCORING_BATCH_SIZE}"
 
 # Ensure directories exist
 mkdir -p "${OUTPUT_PATH}"
-mkdir -p "${BIENCODER_CAND}"
 mkdir -p logs
 
-# Generate dual-encoder candidates
-python -u blink/biencoder/eval_cluster_linking.py \
-	--bert_model="${BERT_MODEL}" \
-	--data_path="${DATA_PATH}" \
-	--output_path="${BIENCODER_CAND}" \
-	--pickle_src_path="${PICKLE_SRC_PATH}" \
-	--path_to_biencoder_model="${BIENCODER_PATH}" \
-	--scoring_batch_size="${SCORING_BATCH_SIZE}" \
-	--data_parallel \
-	--save_topk_result
-
-# Run cross-encoder training
+# Evaluate crossencoder
 python -u blink/crossencoder/original/train_cross.py \
+	--path_to_model="${CROSSENCODER_PATH}" \
 	--bert_model="${BERT_MODEL}" \
 	--data_path="${DATA_PATH}" \
 	--output_path="${OUTPUT_PATH}" \
 	--biencoder_indices_path="${BIENCODER_CAND}" \
 	--pickle_src_path="${PICKLE_SRC_PATH}" \
-	--num_train_epochs="${EPOCHS}" \
-	--learning_rate="${LEARNING_RATE}" \
-	--train_batch_size="${TRAIN_BATCH_SIZE}" \
 	--eval_batch_size="${EVAL_BATCH_SIZE}" \
-	--eval_interval=-1 \
-	--add_linear \
-	--skip_initial_eval \
-	--data_parallel
+    --only_evaluate \
 echo "SCRIPT FINISHED"

@@ -11,27 +11,6 @@ import os
 import pickle
 import shutil
 
-from segtok.segmenter import split_multi
-
-
-##### Reading helpers #####
-def read_sentences_from_file(path_to_file, one_sentence_per_line=True):
-    lines = []
-    with io.open(path_to_file, mode="r", encoding="utf-8") as file:
-        for line in file:
-            line = line.strip()
-            if line != "":
-                lines.append(line.strip())
-
-    if one_sentence_per_line:
-        sentences = lines
-    else:
-        text = " ".join(lines)
-        sentences = list(split_multi(text))
-        sentences = [sentence for sentence in sentences if sentence != ""]
-
-    return sentences
-
 
 ##### Printing / writing  helpers #####
 def get_candidate_summary(candidate):
