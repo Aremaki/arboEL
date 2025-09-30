@@ -56,13 +56,13 @@ data_path_for() {
 pickle_path_for() {
 	local model="$1"
 	local ds="$2"
-	echo "${ROOT_DIR}/models/trained/${ds}_${model}_2"
+	echo "${ROOT_DIR}/models/trained/${ds}_${model}"
 }
 output_path_for() {
 	local model="$1"
 	local ds="$2"
 	local base="${ROOT_DIR}/models/trained"
-	echo "${base}/${ds}_${model}_2/pos_neg_loss/with_type"
+	echo "${base}/${ds}_${model}/pos_neg_loss/with_type"
 }
 mkdir -p "${ROOT_DIR}/logs"
 for model in "${MODELS[@]}"; do
