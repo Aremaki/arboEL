@@ -5,10 +5,11 @@
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
 #
-import re
 import os
-import pysolr
+import re
 import sys
+
+import pysolr
 
 import blink.candidate_retrieval.utils as utils
 
@@ -73,23 +74,19 @@ class BM45_Candidate_Generator(Candidate_Generator):
         keys = self.keys
         query = self.query
         if not self.raw_solr_fields:
-            query = query.format(
-                *[
-                    BM45_Candidate_Generator.solr_escape(mention_data[key])
-                    if key in mention_data
-                    else utils.get_sent_context(mention_data, key)
-                    for key in keys
-                ]
-            )
+            query = query.format(*[
+                BM45_Candidate_Generator.solr_escape(mention_data[key])
+                if key in mention_data
+                else utils.get_sent_context(mention_data, key)
+                for key in keys
+            ])
         else:
-            query = query.format(
-                *[
-                    mention_data[key]
-                    if key in mention_data
-                    else utils.get_sent_context(mention_data, key)
-                    for key in keys
-                ]
-            )
+            query = query.format(*[
+                mention_data[key]
+                if key in mention_data
+                else utils.get_sent_context(mention_data, key)
+                for key in keys
+            ])
 
         try:
             results = solr.search(query, **self.query_arguments)
@@ -135,4 +132,3 @@ class BM45_Candidate_Generator(Candidate_Generator):
         string = re.sub(end, lambda x: x.group(0).lower(), string)
 
         return BM45_Candidate_Generator.ESCAPE_CHARS_RE.sub(r"\\\g<char>", string)
-
