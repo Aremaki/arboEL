@@ -69,6 +69,7 @@ def evaluate(
 
     if use_types:
         logger.info("Eval: Dictionary: Embedding and building index")
+        torch.cuda.empty_cache()
         dict_embeds, dict_indexes, dict_idxs_by_type = data_process.embed_and_index(
             reranker,
             valid_dict_vecs,
@@ -80,6 +81,7 @@ def evaluate(
             probe_mult_factor=probe_mult_factor,
         )
         logger.info("Eval: Queries: Embedding and building index")
+        torch.cuda.empty_cache()
         men_embeds, men_indexes, men_idxs_by_type = data_process.embed_and_index(
             reranker,
             valid_men_vecs,
@@ -92,6 +94,7 @@ def evaluate(
         )
     else:
         logger.info("Eval: Dictionary: Embedding and building index")
+        torch.cuda.empty_cache()
         dict_embeds, dict_index = data_process.embed_and_index(
             reranker,
             valid_dict_vecs,
@@ -102,6 +105,7 @@ def evaluate(
             probe_mult_factor=probe_mult_factor,
         )
         logger.info("Eval: Queries: Embedding and building index")
+        torch.cuda.empty_cache()
         men_embeds, men_index = data_process.embed_and_index(
             reranker,
             valid_men_vecs,
@@ -1161,26 +1165,27 @@ def main(params):
         )
         logger.info(f"Model saved at {epoch_output_folder_path}")
 
-        eval_accuracy, dict_embed_data = evaluate(
-            reranker,
-            entity_dict_vecs,
-            valid_men_vecs,
-            device=device,
-            logger=logger,
-            knn=knn,
-            n_gpu=n_gpu,
-            entity_data=entity_dictionary,
-            query_data=valid_processed_data,
-            silent=params["silent"],
-            use_types=use_types or params["use_types_for_eval"],
-            embed_batch_size=params["embed_batch_size"],
-            force_exact_search=use_types
-            or params["use_types_for_eval"]
-            or params["force_exact_search"],
-            probe_mult_factor=params["probe_mult_factor"],
-            within_doc=within_doc,
-            context_doc_ids=valid_context_doc_ids,
-        )
+        with torch.no_grad():
+            eval_accuracy, dict_embed_data = evaluate(
+                reranker,
+                entity_dict_vecs,
+                valid_men_vecs,
+                device=device,
+                logger=logger,
+                knn=knn,
+                n_gpu=n_gpu,
+                entity_data=entity_dictionary,
+                query_data=valid_processed_data,
+                silent=params["silent"],
+                use_types=use_types or params["use_types_for_eval"],
+                embed_batch_size=params["embed_batch_size"],
+                force_exact_search=use_types
+                or params["use_types_for_eval"]
+                or params["force_exact_search"],
+                probe_mult_factor=params["probe_mult_factor"],
+                within_doc=within_doc,
+                context_doc_ids=valid_context_doc_ids,
+            )
 
         ls = [best_score, eval_accuracy]
         li = [best_epoch_idx, epoch_idx]
