@@ -19,9 +19,9 @@ declare -a DATASETS=(
 	"MedMentions"
 	"EMEA"
 	"MEDLINE"
-	"Medmentions_augmented"
+	"MedMentions_augmented"
 	"EMEA_augmented"
-	"Medline_augmented"
+	"MEDLINE_augmented"
 )
 
 # Map model to paths. Adjust here if your data layout differs.
@@ -40,9 +40,9 @@ epoch_for() {
 		MedMentions) echo 5 ;;
 		EMEA) echo 10 ;;
 		MEDLINE) echo 10 ;;
-		Medmentions_augmented) echo 1 ;;
+		MedMentions_augmented) echo 1 ;;
 		EMEA_augmented) echo 2 ;;
-		Medline_augmented) echo 2 ;;
+		MEDLINE_augmented) echo 2 ;;
 		*) echo "Unknown dataset: $ds" >&2; return 1 ;;
 	esac
 }
