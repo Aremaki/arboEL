@@ -2,10 +2,10 @@
 set -euo pipefail
 
 # This script submits one sbatch job per dataset to evaluate the crossencoder.
-# Datasets: Medmentions, EMEA, Medline, Medmentions_augmented, EMEA_augmented, Medline_augmented
+# Datasets: MedMentions, EMEA, MEDLINE, MedMentions_augmented, EMEA_augmented, MEDLINE_augmented
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SLURM_SCRIPT="${ROOT_DIR}/scripts/train_crossencoder.slurm"
+SLURM_SCRIPT="${ROOT_DIR}/scripts/eval_crossencoder.slurm"
 
 # Allow overriding the partition/node constraint and other sbatch opts via env
 SBATCH_EXTRA_OPTS=${SBATCH_EXTRA_OPTS:-}
@@ -19,9 +19,9 @@ declare -a DATASETS=(
 	"MedMentions"
 	"EMEA"
 	"MEDLINE"
-	"Medmentions_augmented"
+	"MedMentions_augmented"
 	"EMEA_augmented"
-	"Medline_augmented"
+	"MEDLINE_augmented"
 )
 
 # Map model to paths. Adjust here if your data layout differs.
