@@ -592,6 +592,11 @@ def main(params):
 
     # save the best model in the parent_dir
     logger.info("Best performance in epoch: {}".format(best_epoch_idx))
+    final_output_folder_path = os.path.join(
+        model_output_path, "epoch_{}".format(best_epoch_idx)
+    )
+    utils.save_model(model, tokenizer, final_output_folder_path)
+    logger.info(f"Best model saved at {final_output_folder_path}")
 
 
 if __name__ == "__main__":

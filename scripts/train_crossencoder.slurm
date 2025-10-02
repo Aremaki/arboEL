@@ -77,5 +77,19 @@ python -u blink/crossencoder/original/train_cross.py \
 	--eval_interval=-1 \
 	--add_linear \
 	--skip_initial_eval \
-	--data_parallel
+
+# Evaluate the trained cross-encoder
+python -u blink/crossencoder/original/train_cross.py \
+	--bert_model="${BERT_MODEL}" \
+	--data_path="${DATA_PATH}" \
+	--output_path="${OUTPUT_PATH}" \
+	--biencoder_indices_path="${BIENCODER_CAND}" \
+	--pickle_src_path="${PICKLE_SRC_PATH}" \
+	--learning_rate="${LEARNING_RATE}" \
+	--eval_batch_size="${EVAL_BATCH_SIZE}" \
+	--add_linear \
+	--only_evaluate \
+	--path_to_model="${OUTPUT_PATH}/pytorch_model.bin" \
+
+
 echo "SCRIPT FINISHED"
