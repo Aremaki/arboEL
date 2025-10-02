@@ -3,7 +3,7 @@
 #SBATCH --ntasks=1                   # total MPI tasks (= total GPUs)
 #SBATCH --ntasks-per-node=1         # MPI tasks per node (= GPUs per node)
 #SBATCH --gres=gpu:1                 # GPUs per node
-#SBATCH --cpus-per-task=12           # nombre de CPU par tache pour gpu_p2 (1/8 du noeud 8-GPU V100)
+#SBATCH --cpus-per-task=24           # nombre de CPU par tache pour gpu_p2 (1/8 du noeud 8-GPU V100)
 #SBATCH --hint=nomultithread         # disable hyperthreading
 #SBATCH --time=20:00:00              # walltime (HH:MM:SS)
 # NOTE: Job name and log files can be overridden via sbatch -J/-o/-e from the wrapper.
