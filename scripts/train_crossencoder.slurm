@@ -32,6 +32,8 @@ LEARNING_RATE="${LEARNING_RATE:-2e-5}"
 TRAIN_BATCH_SIZE="${TRAIN_BATCH_SIZE:-2}"
 EVAL_BATCH_SIZE="${EVAL_BATCH_SIZE:-2}"
 SCORING_BATCH_SIZE="${SCORING_BATCH_SIZE:-64}"
+EMBED_BATCH_SIZE="${EMBED_BATCH_SIZE:-3500}"
+RECALL_K="${RECALL_K:-64}"
 
 echo "Starting crossencoder training"
 echo "Dataset:        ${DATASET_NAME}"
@@ -46,22 +48,37 @@ echo "Learning rate:      ${LEARNING_RATE}"
 echo "Train batch size:     ${TRAIN_BATCH_SIZE}"
 echo "Eval batch size:     ${EVAL_BATCH_SIZE}"
 echo "Scoring batch size: ${SCORING_BATCH_SIZE}"
+echo "Recall k: ${RECALL_K}"
+echo "Embed batch:    ${EMBED_BATCH_SIZE}"
 
 # Ensure directories exist
 mkdir -p "${OUTPUT_PATH}"
 mkdir -p "${BIENCODER_CAND}"
 mkdir -p logs
 
-# Generate dual-encoder candidates
+# Evaluate Bi-encoder model (optional, but useful to have the results)
 python -u blink/biencoder/eval_cluster_linking.py \
+	--bert_model="${BERT_MODEL}" \
+	--data_path="${DATA_PATH}" \
+	--output_path="${BIENCODER_CAND}" \
+	--pickle_src_path="${PICKLE_SRC_PATH}" \
+	--path_to_model="${BIENCODER_PATH}" \
+	--scoring_batch_size="${SCORING_BATCH_SIZE}" \
+	--embed_batch_size="${EMBED_BATCH_SIZE}" \
+	--recall_k="${RECALL_K}" \
+	--save_topk_result \
+	--use_types \
+
+# Generate dual-encoder candidates
+python -u blink/crossencoder/eval_cluster_linking.py \
 	--bert_model="${BERT_MODEL}" \
 	--data_path="${DATA_PATH}" \
 	--output_path="${BIENCODER_CAND}" \
 	--pickle_src_path="${PICKLE_SRC_PATH}" \
 	--path_to_biencoder_model="${BIENCODER_PATH}" \
 	--scoring_batch_size="${SCORING_BATCH_SIZE}" \
-	--data_parallel \
-	--save_topk_result
+	--save_topk_result \
+	--use_types \
 
 # Run cross-encoder training
 python -u blink/crossencoder/original/train_cross.py \
