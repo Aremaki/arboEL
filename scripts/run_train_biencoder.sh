@@ -38,6 +38,19 @@ epoch_for() {
 	esac
 }
 
+batch_size_for() {
+	local ds="$1"
+	case "$ds" in
+		MedMentions) echo 512 ;;
+		EMEA) echo 128 ;;
+		MEDLINE) echo 128 ;;
+		MedMentions_augmented) echo 2048 ;;
+		EMEA_augmented) echo 2048 ;;
+		MEDLINE_augmented) echo 2048 ;;
+		*) echo "Unknown dataset: $ds" >&2; return 1 ;;
+	esac
+}
+
 # Map model to paths. Adjust here if your data layout differs.
 model_path_for() {
 	local model="$1"
@@ -74,6 +87,7 @@ for model in "${MODELS[@]}"; do
     	PICKLE_SRC_PATH="$(pickle_path_for "$model" "$ds")"
     	BERT_MODEL="$(model_path_for "$model")"
 		EPOCHS="$(epoch_for "$ds")"
+		TRAIN_BATCH_SIZE="$(batch_size_for "$ds")"
     
     	job_name="biencoder_${ds}"
     	log_out="${ROOT_DIR}/logs/${job_name}_%j.out"
@@ -86,7 +100,7 @@ for model in "${MODELS[@]}"; do
     		-o "${log_out}" \
     		-e "${log_err}" \
 			-A ssq@h100 \
-    		--export=ALL,DATASET="${ds}",DATA_PATH="${DATA_PATH}",OUTPUT_PATH="${OUTPUT_PATH}",PICKLE_SRC_PATH="${PICKLE_SRC_PATH}",BERT_MODEL="${BERT_MODEL}",EPOCHS="${EPOCHS}" \
+    		--export=ALL,DATASET="${ds}",DATA_PATH="${DATA_PATH}",OUTPUT_PATH="${OUTPUT_PATH}",PICKLE_SRC_PATH="${PICKLE_SRC_PATH}",BERT_MODEL="${BERT_MODEL}",EPOCHS="${EPOCHS}",TRAIN_BATCH_SIZE="${TRAIN_BATCH_SIZE}" \
     		${SBATCH_EXTRA_OPTS} \
     		"${SLURM_SCRIPT}"
     done
