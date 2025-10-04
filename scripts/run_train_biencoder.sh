@@ -11,6 +11,7 @@ SLURM_SCRIPT="${ROOT_DIR}/scripts/train_biencoder.slurm"
 SBATCH_EXTRA_OPTS=${SBATCH_EXTRA_OPTS:-}
 
 declare -a MODELS=(
+	"biobert_v1"
 	"biobert"
 	"coder-all"
 )
@@ -42,6 +43,7 @@ model_path_for() {
 	local model="$1"
 	case "$model" in
 		biobert) echo "${ROOT_DIR}/models/biobert-base-cased-v1.2" ;;
+		biobert_v1) echo "${ROOT_DIR}/models/biobert-base-cased-v1.1 " ;;
 		coder-all) echo "${ROOT_DIR}/models/coder-all" ;;
 		*) echo "Unknown model: $model" >&2; return 1 ;;
 	esac

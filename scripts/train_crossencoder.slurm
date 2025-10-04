@@ -17,6 +17,7 @@ set -euo pipefail
 module purge
 module load arch/h100
 module load pytorch-gpu/py3/2.5.0
+module load magma/2.8.0-cuda
 
 # Resolve parameters (override via sbatch --export or environment)
 DATASET_NAME="${DATASET:-medmentions}"
