@@ -8,6 +8,7 @@
 import os
 import pickle
 import random
+import shutil
 import time
 
 import numpy as np
@@ -1203,10 +1204,12 @@ def main(params):
 
     # save the best model in the parent_dir
     logger.info("Best performance in epoch: {}".format(best_epoch_idx))
-    params["path_to_model"] = os.path.join(
+    best_epoch_model_path = os.path.join(
         model_output_path, "epoch_{}".format(best_epoch_idx)
     )
-    utils.save_model(reranker.model, tokenizer, model_output_path, scheduler, optimizer)
+    params["path_to_model"] = best_epoch_model_path
+    # Copy best model to the main output directory
+    shutil.copytree(best_epoch_model_path, model_output_path, dirs_exist_ok=True)
     logger.info(f"Best model saved at {model_output_path}")
 
 

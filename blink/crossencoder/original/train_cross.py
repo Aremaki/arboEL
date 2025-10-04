@@ -7,6 +7,7 @@
 #
 import collections
 import os
+import shutil
 import torch
 import random
 import time
@@ -346,8 +347,19 @@ def get_data_loader(
         context_input = context_input[:max_n]
         candidate_input = candidate_input[:max_n]
         label_input = label_input[:max_n]
-
+    logger.info(
+        f"Before modify: context_input.shape = {context_input.shape}, "
+        f"candidate_input.shape = {candidate_input.shape}, "
+        f"label_input.shape = {label_input.shape}, "
+        f"mention_idxs.shape = {mention_idxs.shape}"
+    )
     context_input = modify(context_input, candidate_input, max_seq_length)
+    logger.info(
+        f"After modify: context_input.shape = {context_input.shape}, "
+        f"candidate_input.shape = {candidate_input.shape}, "
+        f"label_input.shape = {label_input.shape}, "
+        f"mention_idxs.shape = {mention_idxs.shape}"
+    )
     tensor_data = TensorDataset(context_input, label_input, mention_idxs)
     sampler = RandomSampler(tensor_data) if shuffle else SequentialSampler(tensor_data)
     dataloader = DataLoader(
@@ -592,11 +604,11 @@ def main(params):
 
     # save the best model in the parent_dir
     logger.info("Best performance in epoch: {}".format(best_epoch_idx))
-    final_output_folder_path = os.path.join(
+    best_epoch_model_path = os.path.join(
         model_output_path, "epoch_{}".format(best_epoch_idx)
     )
-    utils.save_model(model, tokenizer, final_output_folder_path)
-    logger.info(f"Best model saved at {final_output_folder_path}")
+    shutil.copytree(best_epoch_model_path, model_output_path, dirs_exist_ok=True)
+    logger.info(f"Best model saved at {model_output_path}")
 
 
 if __name__ == "__main__":
