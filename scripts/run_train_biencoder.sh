@@ -29,8 +29,8 @@ epoch_for() {
 	local ds="$1"
 	case "$ds" in
 		MedMentions) echo 5 ;;
-		EMEA) echo 10 ;;
-		MEDLINE) echo 10 ;;
+		EMEA) echo 20 ;;
+		MEDLINE) echo 20 ;;
 		MedMentions_augmented) echo 1 ;;
 		EMEA_augmented) echo 2 ;;
 		MEDLINE_augmented) echo 2 ;;
@@ -41,12 +41,12 @@ epoch_for() {
 batch_size_for() {
 	local ds="$1"
 	case "$ds" in
-		MedMentions) echo 512 ;;
-		EMEA) echo 128 ;;
-		MEDLINE) echo 128 ;;
-		MedMentions_augmented) echo 2048 ;;
-		EMEA_augmented) echo 2048 ;;
-		MEDLINE_augmented) echo 2048 ;;
+		MedMentions) echo 128 ;;
+		EMEA) echo 32 ;;
+		MEDLINE) echo 32 ;;
+		MedMentions_augmented) echo 512 ;;
+		EMEA_augmented) echo 512 ;;
+		MEDLINE_augmented) echo 512 ;;
 		*) echo "Unknown dataset: $ds" >&2; return 1 ;;
 	esac
 }
@@ -56,7 +56,7 @@ model_path_for() {
 	local model="$1"
 	case "$model" in
 		biobert) echo "${ROOT_DIR}/models/biobert-base-cased-v1.2" ;;
-		biobert_v1) echo "${ROOT_DIR}/models/biobert-base-cased-v1.1 " ;;
+		biobert_v1) echo "${ROOT_DIR}/models/biobert-base-cased-v1.1" ;;
 		coder-all) echo "${ROOT_DIR}/models/coder-all" ;;
 		*) echo "Unknown model: $model" >&2; return 1 ;;
 	esac

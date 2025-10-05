@@ -313,9 +313,9 @@ def get_data_loader(
         logger,
     )
     logger.info("Loaded")
-    dict_vecs = list(map(lambda x: x["ids"], entity_dictionary))
+    dict_vecs = [x["ids"] for x in entity_dictionary]
 
-    mention_idxs = torch.tensor([i for i in range(len(stored_data["labels"]))])
+    mention_idxs = torch.tensor(list(range(len(stored_data["labels"]))))
     candidate_input = []
     keep_mask = [True] * len(stored_data["labels"])
     for i in tqdm(range(len(stored_data["labels"])), desc="Processing"):
@@ -328,9 +328,11 @@ def get_data_loader(
             else:
                 keep_mask[i] = False
                 continue
-        cands = list(map(lambda x: dict_vecs[x], stored_data["candidates"][i]))
+        cands = [dict_vecs[x] for x in stored_data["candidates"][i]]
         candidate_input.append(cands)
     candidate_input = np.array(candidate_input)
+
+    keep_mask = torch.tensor(keep_mask, dtype=torch.bool)
     context_input = tensor_data[:][0][keep_mask]
     label_input = torch.tensor(stored_data["labels"])[keep_mask]
     mention_idxs = mention_idxs[keep_mask]
@@ -341,25 +343,16 @@ def get_data_loader(
         context_input = context_input[:max_n]
         candidate_input = candidate_input[:max_n]
         label_input = label_input[:max_n]
+        mention_idxs = mention_idxs[:max_n]
 
     if params["debug"]:
         max_n = 200
         context_input = context_input[:max_n]
         candidate_input = candidate_input[:max_n]
         label_input = label_input[:max_n]
-    logger.info(
-        f"Before modify: context_input.shape = {context_input.shape}, "
-        f"candidate_input.shape = {candidate_input.shape}, "
-        f"label_input.shape = {label_input.shape}, "
-        f"mention_idxs.shape = {mention_idxs.shape}"
-    )
+
     context_input = modify(context_input, candidate_input, max_seq_length)
-    logger.info(
-        f"After modify: context_input.shape = {context_input.shape}, "
-        f"candidate_input.shape = {candidate_input.shape}, "
-        f"label_input.shape = {label_input.shape}, "
-        f"mention_idxs.shape = {mention_idxs.shape}"
-    )
+
     tensor_data = TensorDataset(context_input, label_input, mention_idxs)
     sampler = RandomSampler(tensor_data) if shuffle else SequentialSampler(tensor_data)
     dataloader = DataLoader(
