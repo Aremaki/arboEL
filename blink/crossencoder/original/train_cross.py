@@ -332,7 +332,6 @@ def get_data_loader(
         candidate_input.append(cands)
     candidate_input = np.array(candidate_input)
 
-    keep_mask = torch.tensor(keep_mask, dtype=torch.bool)
     context_input = tensor_data[:][0][keep_mask]
     label_input = torch.tensor(stored_data["labels"])[keep_mask]
     mention_idxs = mention_idxs[keep_mask]
