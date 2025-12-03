@@ -35,6 +35,7 @@ EVAL_BATCH_SIZE="${EVAL_BATCH_SIZE:-2}"
 SCORING_BATCH_SIZE="${SCORING_BATCH_SIZE:-64}"
 EMBED_BATCH_SIZE="${EMBED_BATCH_SIZE:-3500}"
 RECALL_K="${RECALL_K:-64}"
+EMBED_CROSS="${EMBED_CROSS:-768}"
 
 echo "Starting crossencoder training"
 echo "Dataset:        ${DATASET_NAME}"
@@ -92,6 +93,7 @@ python -u blink/crossencoder/original/train_cross.py \
 	--learning_rate="${LEARNING_RATE}" \
 	--train_batch_size="${TRAIN_BATCH_SIZE}" \
 	--eval_batch_size="${EVAL_BATCH_SIZE}" \
+	--embed_batch_size="${EMBED_CROSS}" \
 	--eval_interval=-1 \
 	--add_linear \
 	--skip_initial_eval \
