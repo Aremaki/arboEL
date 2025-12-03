@@ -12,17 +12,15 @@ SBATCH_EXTRA_OPTS=${SBATCH_EXTRA_OPTS:-}
 
 declare -a MODELS=(
 	"biobert_v1"
-	"biobert"
-	"coder-all"
+	# "biobert"
+	# "coder-all"
 )
 
 declare -a DATASETS=(
-	"MedMentions"
-	"EMEA"
-	"MEDLINE"
-	"MedMentions_augmented"
-	"EMEA_augmented"
-	"MEDLINE_augmented"
+	# "MedMentions"
+	# "EMEA"
+	# "MEDLINE"
+	"SPACCC"
 )
 
 # Map model to paths. Adjust here if your data layout differs.
@@ -42,9 +40,7 @@ epoch_for() {
 		MedMentions) echo 5 ;;
 		EMEA) echo 10 ;;
 		MEDLINE) echo 10 ;;
-		MedMentions_augmented) echo 1 ;;
-		EMEA_augmented) echo 2 ;;
-		MEDLINE_augmented) echo 2 ;;
+		SPACCC) echo 5 ;;
 		*) echo "Unknown dataset: $ds" >&2; return 1 ;;
 	esac
 }
@@ -98,7 +94,7 @@ for model in "${MODELS[@]}"; do
     		-J "${job_name}" \
     		-o "${log_out}" \
     		-e "${log_err}" \
-			-A ssq@h100 \
+			-A ssq@a100 \
     		--export=ALL,DATASET="${ds}",DATA_PATH="${DATA_PATH}",OUTPUT_PATH="${OUTPUT_PATH}",PICKLE_SRC_PATH="${PICKLE_SRC_PATH}",BERT_MODEL="${BERT_MODEL}",BIENCODER_PATH="${BIENCODER_PATH}",EPOCHS="${EPOCHS}",BIENCODER_CAND="${BIENCODER_CAND}" \
     		${SBATCH_EXTRA_OPTS} \
     		"${SLURM_SCRIPT}"
