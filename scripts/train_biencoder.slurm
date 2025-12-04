@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-#SBATCH -C a100              # target A100 nodes
+#SBATCH -C h100              # target A100 nodes
 #SBATCH --ntasks=1                   # total MPI tasks (= total GPUs)
 #SBATCH --ntasks-per-node=1         # MPI tasks per node (= GPUs per node)
 #SBATCH --gres=gpu:1                 # GPUs per node
-#SBATCH --cpus-per-task=8           # nombre de CPU par tache pour gpu_p2 (1/8 du noeud 8-GPU V100)
+#SBATCH --cpus-per-task=24           # nombre de CPU par tache pour gpu_p2 (1/8 du noeud 8-GPU V100)
 #SBATCH --hint=nomultithread         # disable hyperthreading
 #SBATCH --time=20:00:00              # walltime (HH:MM:SS)
 # NOTE: Job name and log files can be overridden via sbatch -J/-o/-e from the wrapper.
@@ -15,7 +15,7 @@ set -euo pipefail
 
 # Clean any inherited modules and load cluster toolchains
 module purge
-module load arch/a100
+module load arch/h100
 module load pytorch-gpu/py3/2.5.0
 
 # Resolve parameters (override via sbatch --export or environment)

@@ -12,6 +12,7 @@ SBATCH_EXTRA_OPTS=${SBATCH_EXTRA_OPTS:-}
 
 declare -a MODELS=(
 	"biobert_v1"
+    "roberta_bsc"
 	# "biobert"
 	# "coder-all"
 )
@@ -29,7 +30,7 @@ epoch_for() {
 		MedMentions) echo 5 ;;
 		EMEA) echo 20 ;;
 		MEDLINE) echo 20 ;;
-		SPACCC) echo 5 ;;
+		SPACCC) echo 20 ;;
 		*) echo "Unknown dataset: $ds" >&2; return 1 ;;
 	esac
 }
@@ -37,10 +38,10 @@ epoch_for() {
 batch_size_for() {
 	local ds="$1"
 	case "$ds" in
-		MedMentions) echo 128 ;;
+		MedMentions) echo 32 ;;
 		EMEA) echo 32 ;;
 		MEDLINE) echo 32 ;;
-		SPACCC) echo 128 ;;
+		SPACCC) echo 32 ;;
 		*) echo "Unknown dataset: $ds" >&2; return 1 ;;
 	esac
 }
@@ -52,6 +53,7 @@ model_path_for() {
 		biobert) echo "${ROOT_DIR}/models/biobert-base-cased-v1.2" ;;
 		biobert_v1) echo "${ROOT_DIR}/models/biobert-base-cased-v1.1" ;;
 		coder-all) echo "${ROOT_DIR}/models/coder-all" ;;
+		roberta_bsc) echo "${ROOT_DIR}/models/roberta_bsc" ;;
 		*) echo "Unknown model: $model" >&2; return 1 ;;
 	esac
 }
@@ -93,7 +95,7 @@ for model in "${MODELS[@]}"; do
     		-J "${job_name}" \
     		-o "${log_out}" \
     		-e "${log_err}" \
-			-A ssq@a100 \
+			-A ssq@h100 \
     		--export=ALL,DATASET="${ds}",DATA_PATH="${DATA_PATH}",OUTPUT_PATH="${OUTPUT_PATH}",PICKLE_SRC_PATH="${PICKLE_SRC_PATH}",BERT_MODEL="${BERT_MODEL}",EPOCHS="${EPOCHS}",TRAIN_BATCH_SIZE="${TRAIN_BATCH_SIZE}" \
     		${SBATCH_EXTRA_OPTS} \
     		"${SLURM_SCRIPT}"
