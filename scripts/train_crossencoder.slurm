@@ -16,7 +16,7 @@ set -euo pipefail
 # Clean any inherited modules and load cluster toolchains
 module purge
 module load arch/a100
-module load pytorch-gpu/py3/2.1.1
+module load pytorch-gpu/py3/2.5.0
 module load magma/2.8.0-cuda
 
 # Resolve parameters (override via sbatch --export or environment)
