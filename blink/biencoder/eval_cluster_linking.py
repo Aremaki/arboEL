@@ -19,6 +19,8 @@ if not hasattr(np, "int"):
     np.int = int
 if not hasattr(np, "bool"):
     np.bool = bool
+import sys
+
 import torch
 from scipy.sparse import coo_matrix
 from scipy.sparse.csgraph import connected_components
@@ -28,6 +30,26 @@ import blink.biencoder.data_process_mult as data_process
 import blink.candidate_ranking.utils as utils
 from blink.biencoder.biencoder import BiEncoderRanker
 from blink.common.params import BlinkParser
+
+
+def deep_getsizeof(obj, seen=None):
+    if seen is None:
+        seen = set()
+    obj_id = id(obj)
+    if obj_id in seen:
+        return 0
+    seen.add(obj_id)
+
+    size = sys.getsizeof(obj)
+    if hasattr(obj, "__dict__"):
+        size += deep_getsizeof(obj.__dict__, seen)
+    elif isinstance(obj, dict):
+        size += sum(
+            deep_getsizeof(k, seen) + deep_getsizeof(v, seen) for k, v in obj.items()
+        )
+    elif isinstance(obj, (list, tuple, set)):
+        size += sum(deep_getsizeof(i, seen) for i in obj)
+    return size
 
 
 def get_query_nn(
@@ -291,6 +313,25 @@ def main(params):
     # Init model
     reranker = BiEncoderRanker(params)
     reranker.model.eval()
+
+    # Log encoder memory usage
+    param_size = 0
+    for param in reranker.model.parameters():
+        param_size += param.nelement() * param.element_size()
+    buffer_size = 0
+    for buffer in reranker.model.buffers():
+        buffer_size += buffer.nelement() * buffer.element_size()
+    size_all_mb = (param_size + buffer_size) / 1024**2
+    logger.info(f"Encoder model size (CPU): {size_all_mb:.2f} MB")
+
+    if reranker.n_gpu > 0:
+        logger.info(
+            f"GPU memory allocated: {torch.cuda.memory_allocated() / 1024**2:.2f} MB"
+        )
+        logger.info(
+            f"GPU max memory allocated: {torch.cuda.max_memory_allocated() / 1024**2:.2f} MB"
+        )
+
     tokenizer = reranker.tokenizer
     n_gpu = reranker.n_gpu
 
@@ -472,11 +513,25 @@ def main(params):
         embed_data = None
         if os.path.isfile(embed_data_path):
             embed_data = torch.load(embed_data_path)
+            # Log memory of embed_data saving
+            mem_mb = deep_getsizeof(embed_data) / 1024**2
+            logger.info(f"Embedding data memory (loaded): {mem_mb:.2f} MB")
 
         if use_types:
             if embed_data is not None:
                 logger.info("Loading stored embeddings and computing indexes")
                 dict_embeds = embed_data["dict_embeds"]
+
+                if isinstance(dict_embeds, torch.Tensor):
+                    mem_mb = (
+                        dict_embeds.element_size() * dict_embeds.nelement() / 1024**2
+                    )
+                elif isinstance(dict_embeds, np.ndarray):
+                    mem_mb = dict_embeds.nbytes / 1024**2
+                else:
+                    mem_mb = 0
+                logger.info(f"Dictionary embeddings memory: {mem_mb:.2f} MB")
+
                 if "dict_idxs_by_type" in embed_data:
                     dict_idxs_by_type = embed_data["dict_idxs_by_type"]
                 else:
@@ -488,6 +543,15 @@ def main(params):
                     probe_mult_factor=params["probe_mult_factor"],
                 )
                 men_embeds = embed_data["men_embeds"]
+
+                if isinstance(men_embeds, torch.Tensor):
+                    mem_mb = men_embeds.element_size() * men_embeds.nelement() / 1024**2
+                elif isinstance(men_embeds, np.ndarray):
+                    mem_mb = men_embeds.nbytes / 1024**2
+                else:
+                    mem_mb = 0
+                logger.info(f"Queries embeddings memory: {mem_mb:.2f} MB")
+
                 if "men_idxs_by_type" in embed_data:
                     men_idxs_by_type = embed_data["men_idxs_by_type"]
                 else:
@@ -500,6 +564,7 @@ def main(params):
                 )
             else:
                 logger.info("Dictionary: Embedding and building index")
+                start_time = time.time()
                 dict_embeds, dict_indexes, dict_idxs_by_type = (  # type: ignore
                     data_process.embed_and_index(
                         reranker,
@@ -512,12 +577,35 @@ def main(params):
                         probe_mult_factor=params["probe_mult_factor"],
                     )
                 )  # type: ignore
+                end_time = time.time()
+                total_time = end_time - start_time
+                logger.info(f"Dictionary embedding time: {total_time:.2f} seconds")
+                logger.info(
+                    f"Dictionary embedding speed: {len(test_dict_vecs) / total_time:.2f} examples/second"
+                )
+
+                if isinstance(dict_embeds, torch.Tensor):
+                    mem_mb = (
+                        dict_embeds.element_size() * dict_embeds.nelement() / 1024**2
+                    )
+                elif isinstance(dict_embeds, np.ndarray):
+                    mem_mb = dict_embeds.nbytes / 1024**2
+                else:
+                    mem_mb = 0
+                logger.info(f"Dictionary embeddings memory: {mem_mb:.2f} MB")
+                if n_gpu > 0:
+                    logger.info(
+                        f"GPU memory allocated: {torch.cuda.memory_allocated() / 1024**2:.2f} MB"
+                    )
+
                 logger.info("Queries: Embedding and building index")
                 vecs = test_men_vecs
                 men_data = mention_data
                 if params["transductive"]:
                     vecs = torch.cat((train_men_vecs, vecs), dim=0)  # type: ignore
                     men_data = train_mention_data + mention_data  # type: ignore
+
+                start_time = time.time()
                 men_embeds, men_indexes, men_idxs_by_type = (  # type: ignore
                     data_process.embed_and_index(
                         reranker,
@@ -530,16 +618,54 @@ def main(params):
                         probe_mult_factor=params["probe_mult_factor"],
                     )
                 )  # type: ignore
+                end_time = time.time()
+                total_time = end_time - start_time
+                logger.info(f"Queries embedding time: {total_time:.2f} seconds")
+                logger.info(
+                    f"Queries embedding speed: {len(vecs) / total_time:.2f} examples/second"
+                )
+
+                if isinstance(men_embeds, torch.Tensor):
+                    mem_mb = men_embeds.element_size() * men_embeds.nelement() / 1024**2
+                elif isinstance(men_embeds, np.ndarray):
+                    mem_mb = men_embeds.nbytes / 1024**2
+                else:
+                    mem_mb = 0
+                logger.info(f"Queries embeddings memory: {mem_mb:.2f} MB")
+                if n_gpu > 0:
+                    logger.info(
+                        f"GPU memory allocated: {torch.cuda.memory_allocated() / 1024**2:.2f} MB"
+                    )
         else:
             if embed_data is not None:
                 logger.info("Loading stored embeddings and computing indexes")
                 dict_embeds = embed_data["dict_embeds"]
+
+                if isinstance(dict_embeds, torch.Tensor):
+                    mem_mb = (
+                        dict_embeds.element_size() * dict_embeds.nelement() / 1024**2
+                    )
+                elif isinstance(dict_embeds, np.ndarray):
+                    mem_mb = dict_embeds.nbytes / 1024**2
+                else:
+                    mem_mb = 0
+                logger.info(f"Dictionary embeddings memory: {mem_mb:.2f} MB")
+
                 dict_index = data_process.get_index_from_embeds(
                     dict_embeds,
                     force_exact_search=params["force_exact_search"],
                     probe_mult_factor=params["probe_mult_factor"],
                 )
                 men_embeds = embed_data["men_embeds"]
+
+                if isinstance(men_embeds, torch.Tensor):
+                    mem_mb = men_embeds.element_size() * men_embeds.nelement() / 1024**2
+                elif isinstance(men_embeds, np.ndarray):
+                    mem_mb = men_embeds.nbytes / 1024**2
+                else:
+                    mem_mb = 0
+                logger.info(f"Queries embeddings memory: {mem_mb:.2f} MB")
+
                 men_index = data_process.get_index_from_embeds(
                     men_embeds,
                     force_exact_search=params["force_exact_search"],
@@ -547,6 +673,7 @@ def main(params):
                 )
             else:
                 logger.info("Dictionary: Embedding and building index")
+                start_time = time.time()
                 dict_embeds, dict_index = data_process.embed_and_index(  # type: ignore
                     reranker,
                     test_dict_vecs,
@@ -556,10 +683,33 @@ def main(params):
                     batch_size=params["embed_batch_size"],
                     probe_mult_factor=params["probe_mult_factor"],
                 )
+                end_time = time.time()
+                total_time = end_time - start_time
+                logger.info(f"Dictionary embedding time: {total_time:.2f} seconds")
+                logger.info(
+                    f"Dictionary embedding speed: {len(test_dict_vecs) / total_time:.2f} examples/second"
+                )
+
+                if isinstance(dict_embeds, torch.Tensor):
+                    mem_mb = (
+                        dict_embeds.element_size() * dict_embeds.nelement() / 1024**2
+                    )
+                elif isinstance(dict_embeds, np.ndarray):
+                    mem_mb = dict_embeds.nbytes / 1024**2
+                else:
+                    mem_mb = 0
+                logger.info(f"Dictionary embeddings memory: {mem_mb:.2f} MB")
+                if n_gpu > 0:
+                    logger.info(
+                        f"GPU memory allocated: {torch.cuda.memory_allocated() / 1024**2:.2f} MB"
+                    )
+
                 logger.info("Queries: Embedding and building index")
                 vecs = test_men_vecs
                 if params["transductive"]:
                     vecs = torch.cat((train_men_vecs, vecs), dim=0)  # type: ignore
+
+                start_time = time.time()
                 men_embeds, men_index = data_process.embed_and_index(  # type: ignore
                     reranker,
                     vecs,
@@ -569,6 +719,24 @@ def main(params):
                     batch_size=params["embed_batch_size"],
                     probe_mult_factor=params["probe_mult_factor"],
                 )  # type: ignore
+                end_time = time.time()
+                total_time = end_time - start_time
+                logger.info(f"Queries embedding time: {total_time:.2f} seconds")
+                logger.info(
+                    f"Queries embedding speed: {len(vecs) / total_time:.2f} examples/second"
+                )
+
+                if isinstance(men_embeds, torch.Tensor):
+                    mem_mb = men_embeds.element_size() * men_embeds.nelement() / 1024**2
+                elif isinstance(men_embeds, np.ndarray):
+                    mem_mb = men_embeds.nbytes / 1024**2
+                else:
+                    mem_mb = 0
+                logger.info(f"Queries embeddings memory: {mem_mb:.2f} MB")
+                if n_gpu > 0:
+                    logger.info(
+                        f"GPU memory allocated: {torch.cuda.memory_allocated() / 1024**2:.2f} MB"
+                    )
 
         # Save computed embedding data if not loaded from disk
         if embed_data is None:
@@ -579,6 +747,10 @@ def main(params):
                 embed_data["dict_idxs_by_type"] = dict_idxs_by_type
                 embed_data["men_idxs_by_type"] = men_idxs_by_type
             # NOTE: Cannot pickle faiss index because it is a SwigPyObject
+            # Log memory of embed_data before saving
+            mem_mb = deep_getsizeof(embed_data) / 1024**2
+            logger.info(f"Embedding data memory (to be saved): {mem_mb:.2f} MB")
+            logger.info("Saving embedding data...")
             torch.save(
                 embed_data, embed_data_path, pickle_protocol=pickle.HIGHEST_PROTOCOL
             )
@@ -589,6 +761,7 @@ def main(params):
         recall_idxs = [0.0] * params["recall_k"]
 
         logger.info("Starting KNN search...")
+        knn_start_time = time.time()
         # Fetch recall_k (default 16) knn entities for all mentions
         # Fetch (k+1) NN mention candidates
         if not use_types:
@@ -648,9 +821,11 @@ def main(params):
                     nn_men_dists[idx][: len(nn_men_dists_by_type[i])] = (
                         nn_men_dists_by_type[i]
                     )
+        logger.info(f"KNN search time: {time.time() - knn_start_time} seconds")
         logger.info("Search finished")
 
         logger.info("Building graphs")
+        graph_build_start_time = time.time()
         # Find the most similar entity and k-nn mentions for each mention query
         for idx in range(len(nn_ent_idxs)):
             # Get nearest entity candidate
@@ -723,6 +898,10 @@ def main(params):
                     )  # Mentions added at an offset of maximum entities
                     joint_graph["cols"] = np.append(joint_graph["cols"], dict_cand_idx)
                     joint_graph["data"] = np.append(joint_graph["data"], float("inf"))
+
+        logger.info(
+            f"Building graphs time: {time.time() - graph_build_start_time} seconds"
+        )
 
         # Compute and print recall metric
         recall_idx_mode = np.argmax(recall_idxs)

@@ -90,6 +90,8 @@ def evaluate(
     n_evaluated_per_type = collections.defaultdict(int)
     n_hits_per_type = collections.defaultdict(int)
 
+    start_time = time.time()
+
     for step, batch in enumerate(iter_):
         batch = tuple(t.to(device) for t in batch)
         context_input, label_input, mention_idxs = batch
@@ -137,6 +139,14 @@ def evaluate(
                 failsucc["success" if tmp_eval_hits[i] else "failure"].append(
                     report_obj
                 )
+
+    end_time = time.time()
+    total_time = end_time - start_time
+    if nb_eval_examples > 0:
+        logger.info(f"Evaluation time: {total_time:.2f} seconds")
+        logger.info(
+            f"Evaluation speed: {nb_eval_examples / total_time:.2f} examples/second"
+        )
 
     results["filtered_length"] = nb_eval_examples
     normalized_eval_accuracy = eval_accuracy / nb_eval_examples
@@ -212,6 +222,13 @@ def load_data(
     if return_dict_only and entity_dictionary_loaded:
         return entity_dictionary
 
+    # Log entity dictionary memory
+    if entity_dictionary_loaded:
+        import sys
+
+        dict_size_mb = sys.getsizeof(pickle.dumps(entity_dictionary)) / 1024**2
+        logger.info(f"Entity dictionary memory size: {dict_size_mb:.2f} MB")
+
     # Load data
     tensor_data_pkl_path = os.path.join(
         pickle_src_path, f"{data_split}_tensor_data.pickle"
@@ -232,6 +249,11 @@ def load_data(
                 os.path.join(params["data_path"], "dictionary.pickle"), "rb"
             ) as read_handle:
                 entity_dictionary = pickle.load(read_handle)
+
+            import sys
+
+            dict_size_mb = sys.getsizeof(pickle.dumps(entity_dictionary)) / 1024**2
+            logger.info(f"Entity dictionary memory size: {dict_size_mb:.2f} MB")
 
         # Check if dataset has multiple ground-truth labels
         mult_labels = "labels" in data_samples[0].keys()
@@ -275,6 +297,14 @@ def load_data(
 
     if return_dict_only:
         return entity_dictionary
+
+    import sys
+
+    tensor_size_mb = sys.getsizeof(pickle.dumps(tensor_data)) / 1024**2
+    processed_size_mb = sys.getsizeof(pickle.dumps(processed_data)) / 1024**2
+    logger.info(f"Tensor data memory size: {tensor_size_mb:.2f} MB")
+    logger.info(f"Processed data memory size: {processed_size_mb:.2f} MB")
+
     return entity_dictionary, tensor_data, processed_data
 
 
@@ -387,6 +417,24 @@ def main(params):
     model = reranker.model
     device = reranker.device
     n_gpu = reranker.n_gpu
+
+    # Log model memory usage
+    param_size = 0
+    for param in model.parameters():
+        param_size += param.nelement() * param.element_size()
+    buffer_size = 0
+    for buffer in model.buffers():
+        buffer_size += buffer.nelement() * buffer.element_size()
+    size_all_mb = (param_size + buffer_size) / 1024**2
+    logger.info(f"CrossEncoder model size (CPU): {size_all_mb:.2f} MB")
+
+    if n_gpu > 0:
+        logger.info(
+            f"GPU memory allocated: {torch.cuda.memory_allocated() / 1024**2:.2f} MB"
+        )
+        logger.info(
+            f"GPU max memory allocated: {torch.cuda.max_memory_allocated() / 1024**2:.2f} MB"
+        )
 
     if params["gradient_accumulation_steps"] < 1:
         raise ValueError(
